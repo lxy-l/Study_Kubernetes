@@ -1,10 +1,7 @@
-using Humanizer;
-
 namespace WebApi
 {
     public class WeatherForecast
     {
-        public string DateFormat => Date.Humanize();
         public DateTime Date { get; set; }
 
         public int TemperatureC { get; set; }
