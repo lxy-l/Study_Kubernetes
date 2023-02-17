@@ -1,0 +1,34 @@
+architectures:
+- linux/amd64
+- linux/arm64
+dashboards:
+  istio-extension-dashboard: 13277
+  istio-mesh-dashboard: 7639
+  istio-performance-dashboard: 11829
+  istio-service-dashboard: 7636
+  istio-workload-dashboard: 7630
+  pilot-dashboard: 7645
+dependencies:
+  api:
+    sha: f04847bedb291ce0321ba52abceb7149e06af46a
+  client-go:
+    goversionenabled: true
+    sha: 9d2cc748349919a4983cc68ac49d4d9364c1ce49
+  envoy:
+    sha: 7a6b7cd3fea940b8c2e9d8efe9f21521db842fb8
+  istio:
+    sha: 3e5fd5a1d70ea535ad5d18fb66a76c5cce905876
+  pkg:
+    sha: 574f8d141535ddd1c3633b22e65d825d6a1d230b
+  proxy:
+    sha: fa88959eb040f004889985399669f7a824a7e18e
+  release-builder:
+    sha: 44ac59325862b487de4749d5fd50973807755036
+  test-infra:
+    sha: 68dd892bcdc011b56460d2f7fd592e4946da082f
+  tools:
+    sha: 17ee49bc422e093b123c1000ffede4bd6848d3a4
+docker: docker.io/istio
+dockerOutput: tar
+skipGenerateBillOfMaterials: false
+version: 1.16.2

@@ -1,0 +1,46 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: dashboard-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 8443
+      name: http-dashboard
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: dashboard-vs
+  namespace: istio-system
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - dashboard-gateway
+  http:
+  - match:
+    - port: 8443
+    route:
+    - destination:
+        host: dashboard
+        port:
+          number: 8443
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: dashboard
+  namespace: istio-system
+spec:
+  host: dashboard
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+---
