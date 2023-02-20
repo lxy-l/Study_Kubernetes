@@ -263,7 +263,7 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
    calicoctl node status 
    #INFO处于Established状态
    ```
-   1. 所有节点处于Read状态
+   1. 所有节点处于Ready状态
    2. Pod全部处于Runing状态
    3. 执行命令所有节点IP正常
 
