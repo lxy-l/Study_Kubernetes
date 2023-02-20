@@ -15,8 +15,12 @@
 4. 分配服务器固定IP
 
 ### 配置
-> 搭建一个master两个node的学习环境
-> 端口开放
+> 搭建一个master两个node的学习环境  
+> 端口开放：
+> [Kubernetes](https://kubernetes.io/zh-cn/docs/reference/networking/ports-and-protocols/)
+> [Calico](https://docs.tigera.io/calico/3.25/getting-started/kubernetes/requirements)
+> [Istio](https://istio.io/latest/zh/docs/ops/deployment/requirements/#ports-used-by-Istio)
+> 
  
 | 节点名   | IP             |端口  |
 | :-----  | :------------: | :-------: |
@@ -210,18 +214,24 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ---
 
 ## 7.安装calico
->https://docs.tigera.io/calico/3.25/getting-started/kubernetes/quickstart
-
-1. 安装
-   
+>安装：https://docs.tigera.io/calico/3.25/getting-started/kubernetes/quickstart  
+>疑难解答：https://docs.tigera.io/calico/3.25/operations/troubleshoot/troubleshooting#configure-networkmanager
+1. 配置NetworkManager
+    ```conf
+    #/etc/NetworkManager/conf.d/calico.conf
+    [keyfile]
+    unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vxlan-v6.calico;interface-name:wireguard.cali;interface-name:wg-v6.cali
+    ```
+2. 安装
    ```
    #按照官方默认配置来就行了
    kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml
    ```
-2. 配置custom-resources.yaml
+3. 配置custom-resources.yaml
    ```bash
    wget https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/custom-resources.yaml
    ```
+   修改配置文件
    ```YAML
     # This section includes base Calico installation configuration.
     # For more information, see: https://projectcalico.docs.tigera.io/master/reference/installation/api#operator.tigera.io/v1.Installation
@@ -252,12 +262,12 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
     spec: {}
 
    ```
-3. 配置完后执行
+4. 配置完后执行
    
    ```bash
    kubectl create -f custom-resources.yaml
    ```
-4. 检查状态
+5. 检查状态
 
    ```bash
    calicoctl node status 
@@ -321,7 +331,99 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
    kubectl top nodes
    ```
 
-## 9.安装Istio
+
+## 9.安装PureLB
+>https://purelb.gitlab.io/docs/install/install/
+
+1. 配置
+```bash
+#前提开启ipvs
+
+#配置apiserver
+kubectl edit configmap kube-proxy -n kube-system
+修改mode: "ipvs" #修改此处，原为空
+修改strictARP: true #修改此处，原为false
+
+#重启kube-proxy
+kubectl rollout restart daemonset kube-proxy -n kube-system 
+
+#配置sysctl
+cat <<EOF | sudo tee /etc/sysctl.d/k8s_arp.conf
+net.ipv4.conf.all.arp_ignore=1
+net.ipv4.conf.all.arp_announce=2
+
+EOF
+sudo sysctl --system
+```
+
+2. 安装PureLB
+```bash
+kubectl apply -f https://gitlab.com/api/v4/projects/purelb%2Fpurelb/packages/generic/manifest/0.0.1/purelb-complete.yaml
+
+kubectl get pods --namespace=purelb --output=wide
+
+kubectl api-resources --api-group=purelb.io
+
+kubectl describe --namespace=purelb lbnodeagent.purelb.io/default
+```
+
+3. 新增默认配置文件
+```YAML
+#00-installer-config.yaml
+network:
+  ethernets:
+    eth0:
+      dhcp4: true
+    eth1:
+      dhcp4: no
+      addresses: [172.17.191.2/24] #这个是服务器固定IP
+    eth2:
+      dhcp4: no
+      addresses: [172.32.100.2/24] #需要新增一个负载均衡的IP
+  version: 2
+#purelbserviceGroup.yaml
+apiVersion: purelb.io/v1
+kind: ServiceGroup
+metadata:
+  name: default
+  namespace: purelb
+spec:
+  local:
+    v4pool:
+      aggregation: default
+      pool: 172.32.100.225-172.32.100.229 #自定义范围
+      subnet: 172.32.100.0/24 #配置为eth2网卡
+```
+4. 执行配置文件
+```bash
+kubectl apply -f purelbserviceGroup.yaml
+```
+
+5. 检查
+```bash
+#此时service类型为LoadBalancer的 EXTERNAL-IP已经被分配好了
+kubectl get svc istio-ingressgateway -n istio-system
+访问EXTERNAL-IP加端口正常
+```
+
+6. 重启服务器
+```bash
+#PEER ADDRESS 应该为服务器固定IP，如果不是，需要手动修改IP
+#INFO处于Established状态
+calicoctl node status
+
+#观察caliconode
+calicoctl get node node1 -o yaml
+
+#调整
+kubectl edit daem：qonset calico-node -n calico-system
+ - name: IP
+    value: autodetect
+ - name: IP_AUTODETECTION_METHOD
+    value: interface=eth1 #这个网卡名称不能错，否则IP分配会错误
+```
+
+## 10.安装Istio
 >https://istio.io/latest/docs/setup/getting-started/
 1. 下载istio安装包
 ```bash
@@ -637,97 +739,37 @@ status:
     ingress:
     - ip: 172.32.100.227
 ```
-
-## 10.安装PureLB
->https://purelb.gitlab.io/docs/install/install/
-
-1. 配置
+7. 配置kiali
 ```bash
-#前提开启ipvs
-
-#配置apiserver
-kubectl edit configmap kube-proxy -n kube-system
-修改mode: "ipvs" #修改此处，原为空
-修改strictARP: true #修改此处，原为false
-
-#重启kube-proxy
-kubectl rollout restart daemonset kube-proxy -n kube-system 
-
-#配置sysctl
-cat <<EOF | sudo tee /etc/sysctl.d/k8s_arp.conf
-net.ipv4.conf.all.arp_ignore=1
-net.ipv4.conf.all.arp_announce=2
-
-EOF
-sudo sysctl --system
+# 编辑kiali的配置文件
+kubectl edit configmap -n istio-system kiali
 ```
-
-2. 安装PureLB
-```bash
-kubectl apply -f https://gitlab.com/api/v4/projects/purelb%2Fpurelb/packages/generic/manifest/0.0.1/purelb-complete.yaml
-
-kubectl get pods --namespace=purelb --output=wide
-
-kubectl api-resources --api-group=purelb.io
-
-kubectl describe --namespace=purelb lbnodeagent.purelb.io/default
-```
-
-3. 新增默认配置文件
+修改配置文件
 ```YAML
-#00-installer-config.yaml
-network:
-  ethernets:
-    eth0:
-      dhcp4: true
-    eth1:
-      dhcp4: no
-      addresses: [172.17.191.2/24] #这个是服务器固定IP
-    eth2:
-      dhcp4: no
-      addresses: [172.32.100.2/24] #需要新增一个负载均衡的IP
-  version: 2
-#purelbserviceGroup.yaml
-apiVersion: purelb.io/v1
-kind: ServiceGroup
-metadata:
-  name: default
-  namespace: purelb
-spec:
-  local:
-    v4pool:
-      aggregation: default
-      pool: 172.32.100.225-172.32.100.229 #自定义范围
-      subnet: 172.32.100.0/24 #配置为eth2网卡
+	external_services:
+		  prometheus: #添加
+		    in_cluster_url: "http://prometheus.istio-system:9090/"
+		  grafana: #添加
+		    in_cluster_url: "http://grafana.istio-system:3000"
+		    url: 'http://172.32.100.227:15031/'
+		  tracing: #添加
+		    auth:
+		      type: none
+		    enabled: true
+		    in_cluster_url: "http://tracing.istio-system:16685/jaeger"
+		    url: 'http://172.32.100.227:15032/jaeger/'
+		    use_grpc: true
+		  custom_dashboards:
+		    enabled: true
+		  istio:
+		    root_namespace: istio-system
 ```
-4. 执行配置文件
-```bash
-kubectl apply -f purelbserviceGroup.yaml
+```BASH
+#删除Pod，重新构建
+kubectl delete pod -n istio-system kiali-5c547b7b74-hg7dz
 ```
+打开kiali网页，无报错就ok
 
-5. 检查
-```bash
-#此时service类型为LoadBalancer的 EXTERNAL-IP已经被分配好了
-kubectl get svc istio-ingressgateway -n istio-system
-访问EXTERNAL-IP加端口正常
-```
-
-6. 重启服务器
-```bash
-#PEER ADDRESS 应该为服务器固定IP，如果不是，需要手动修改IP
-#INFO处于Established状态
-calicoctl node status
-
-#观察caliconode
-calicoctl get node node1 -o yaml
-
-#调整
-kubectl edit daem：qonset calico-node -n calico-system
- - name: IP
-    value: autodetect
- - name: IP_AUTODETECTION_METHOD
-    value: interface=eth1 #这个网卡名称不能错，否则IP分配会错误
-```
 
 
 ## 11.安装dashboard
