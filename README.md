@@ -746,23 +746,23 @@ kubectl edit configmap -n istio-system kiali
 ```
 修改配置文件
 ```YAML
-	external_services:
-		  prometheus: #添加
-		    in_cluster_url: "http://prometheus.istio-system:9090/"
-		  grafana: #添加
-		    in_cluster_url: "http://grafana.istio-system:3000"
-		    url: 'http://172.32.100.227:15031/'
-		  tracing: #添加
-		    auth:
-		      type: none
-		    enabled: true
-		    in_cluster_url: "http://tracing.istio-system:16685/jaeger"
-		    url: 'http://172.32.100.227:15032/jaeger/'
-		    use_grpc: true
-		  custom_dashboards:
-		    enabled: true
-		  istio:
-		    root_namespace: istio-system
+external_services:
+  prometheus: #添加
+    in_cluster_url: "http://prometheus.istio-system:9090/"
+  grafana: #添加
+    in_cluster_url: "http://grafana.istio-system:3000"
+    url: 'http://172.32.100.227:15031/'
+  tracing: #添加
+    auth:
+      type: none
+      enabled: true
+    in_cluster_url: "http://tracing.istio-system:16685/jaeger"
+    url: 'http://172.32.100.227:15032/jaeger/'
+    use_grpc: true
+  custom_dashboards:
+    enabled: true
+  istio:
+    root_namespace: istio-system
 ```
 ```BASH
 #删除Pod，重新构建
