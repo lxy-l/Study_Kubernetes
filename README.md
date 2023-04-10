@@ -1,5 +1,5 @@
-# Kubernetes 学习笔记
->创建Kubernetes集群
+# Kubernetes 部署(v1.26.1)
+>创建一个master两个node的Kubernetes集群
 ---
 ## 参考资料
 * 使用 *[kubeadm](https://kubernetes.io/zh-cn/docs/setup/production-environment/tools/kubeadm/)* 安装kubernetes集群
@@ -14,8 +14,7 @@
 3. 临时关闭防火墙
 4. 分配服务器固定IP
 
-### 配置
-> 搭建一个master两个node的学习环境  
+### 配置 
 > 端口开放：
 > [Kubernetes](https://kubernetes.io/zh-cn/docs/reference/networking/ports-and-protocols/)
 > [Calico](https://docs.tigera.io/calico/3.25/getting-started/kubernetes/requirements)
