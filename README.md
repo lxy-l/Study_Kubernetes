@@ -864,7 +864,18 @@ kubectl apply -f dashboard-ClusterRoleBinding.yaml
 1. 开启防火墙
 2. 开启防火墙日志监控端口
 3. 开放对应端口
+  
+   节点状态：
+   ![image](/img/节点状态.png)
+   Pod状态：
+   ![image](/img/pod状态.png)
+   Service状态：
+   ![image](/img/服务状态.png)
+
+
 ---
+
+
 # 总结
 1. 需要在初始化集群之前手动翻墙拉取registry.k8s.io里面的相关镜像
 2. registry.k8s.io/pause:3.6需要手动拉取，推荐的registry.k8s.io/pause:3.9使用不了，不然会报错
