@@ -199,15 +199,17 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 ## 6.部署node节点
 
-1. 按照1~3的步骤执行
+1. 按照`1~3`的步骤执行
 2. 修改kubeadm对应的配置
 3. 在master节点上生成jointoken
-``` bash
+    ``` bash
+    #在master节点上执行
     #永久有效的连接token
     kubeadm token create --ttl 0 --print-join-command
-```
+    ```
 4. 加入master节点中
-    ```bash
+    ``` bash
+    #在node节点上执行
     kubeadm join 172.17.191.2:6443 --token wbxv8d.uhvwicjhgw4phfmp --discovery-token-ca-cert-hash sha256:e16b1fd42dc7cbe365a6bdc82c79c335b6a47b90a2037c84e46f2a3b503927b0 --node-name node1
     ```
 
